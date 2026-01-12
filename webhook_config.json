@@ -1,0 +1,127 @@
+{
+    "api":[
+        {
+            "description": "Btrust Shift System",
+            "url": "http://172.16.20.50:8025/Home/Login",
+            "status": 200,
+            "interval": 5,
+            "timeout": 10,
+            "calls": 10,
+            "fails": 3,
+            "errorTitle": "Btrust Shift System Warning!",
+            "errorMessage": "Btrust shift system warning, could not connect home page.",
+            "timeoutMessage": "Btrust shift system warning, timeout when connect home page."
+        },
+        {
+            "description": "Btrust third party cloud punch System",
+            "url": "https://api.us.crosschexcloud.com",
+            "status": 200,
+            "interval": 5,
+            "timeout": 10,
+            "calls": 10,
+            "fails": 3,
+            "errorTitle": "Btrust third party cloud punch System Warning!",
+            "errorMessage": "Btrust third party cloud punch system warning, could not connect home page.",
+            "timeoutMessage": "Btrust third party cloud punch system warning, timeout when connect home page."
+        },
+        {
+            "description": "Btrust Report System",
+            "url": "http://172.16.20.50:8088/Login.aspx",
+            "status": 200,
+            "interval": 5,
+            "timeout": 10,
+            "calls": 10,
+            "fails": 3,
+            "errorTitle": "Btrust Report System Warning!",
+            "errorMessage": "Btrust Report system warning, could not connect home page.",
+            "timeoutMessage": "Btrust Report system warning, timeout when connect home page."
+        },
+        {
+            "description": "Btrust PO System",
+            "url": "http://172.16.20.50:8035/Login",
+            "status": 200,
+            "interval": 5,
+            "timeout": 10,
+            "calls": 10,
+            "fails": 3,
+            "errorTitle": "Btrust PO System Warning!",
+            "errorMessage": "Btrust PO system warning, could not connect home page.",
+            "timeoutMessage": "Btrust PO system warning, timeout when connect home page."
+        },
+        {
+            "description": "Btrust ProductList System",
+            "url": "http://172.16.20.50:8030/ProductList",
+            "status": 200,
+            "interval": 5,
+            "timeout": 10,
+            "calls": 10,
+            "fails": 3,
+            "errorTitle": "Btrust ProductList System Warning!",
+            "errorMessage": "Btrust ProductList system warning, could not connect home page.",
+            "timeoutMessage": "Btrust ProductList system warning, timeout when connect home page."
+        },
+        {
+            "description": "Btrust Buyer PO System",
+            "url": "http://172.16.20.50:8033/Login",
+            "status": 200,
+            "interval": 5,
+            "timeout": 10,
+            "calls": 10,
+            "fails": 3,
+            "errorTitle": "Btrust Buyer PO System Warning!",
+            "errorMessage": "Btrust Buyer PO system warning, could not connect home page.",
+            "timeoutMessage": "Btrust Buyer PO system warning, timeout when connect home page."
+        }
+    ],
+    "DB":[
+        {
+            "description": "Btrust Reports Users",
+            "host": "172.16.20.50\\SQLEXPRESS",
+            "user": "report",
+            "pw": "123456",
+            "db": "Reports",
+            "interval": 5,
+            "errorTitle": "Btrust Reports Users DB Warning!",
+            "errorMessage": "Btrust Reports Users DB warning, could not connect database."
+        },
+        {
+            "description": "Btrust Reports B1 New",
+            "host": "10.1.10.90\\LOGI2024B",
+            "user": "andrew.pan1",
+            "pw": "Apan",
+            "db": "LogiDB",
+            "interval": 5,
+            "errorTitle": "Btrust Reports B1 New DB Warning!",
+            "errorMessage": "Btrust Reports B1 New DB warning, could not connect database."
+        },
+        {
+            "description": "Btrust Reports B1",
+            "host": "10.1.10.97",
+            "user": "schedulejob",
+            "pw": "ddME5YA06",
+            "db": "STORESQL",
+            "interval": 5,
+            "errorTitle": "Btrust Reports B1 DB Warning!",
+            "errorMessage": "Btrust Reports B1 DB warning, could not connect database."
+        },
+        {
+            "description": "Btrust Reports B1 Old",
+            "host": "WEBAPP",
+            "user": "schedulejob",
+            "pw": "ddME5YA06",
+            "db": "LOGI2008B1",
+            "interval": 5,
+            "errorTitle": "Btrust Reports B1 Old DB Warning!",
+            "errorMessage": "Btrust Reports B1 Old DB warning, could not connect database."
+        }
+    ],
+    "Directory": [
+        {
+            "path": "//172.16.20.21/Enterprise Suite/Enterprise/Data/",
+            "description": "Server store ctx punch data",
+            "errorTitle": "CTX punch directory visit Warning!",
+            "errorMessage": "CTX punch directory visit warning, could not connect to this directory.",
+            "interval": 5
+        }
+    ]
+ }

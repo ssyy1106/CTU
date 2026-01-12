@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>820 working hours notification</title>
+  </head>
+  <body>
+    <h1>Employees working hours alert</h1>
+    <p>Snapshot of {{item_count}} active employee working hours taken at {{snap_time.strftime('%H:%M on %h %d %Y')}}.</p>
+    {% if item_count > 5 %}
+    <p>See attachment for employee working hours table.</p>
+    {% else %}
+    <hr/>
+    <table class="table">
+      <thead>
+      <tr>
+        <th scope="col">RealName</th>
+        <th scope="col">BtrustId</th>
+        <th scope="col">Total Hours</th>
+        <th scope="col">Store</th>
+        <th scope="col">DepartmentName</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for work_item in work_items %}
+      <tr>
+        <td>{{work_item["RealName"]}}</td>
+        <td>{{work_item["BtrustId"]}}</td>
+        <td>{{work_item["WorkingHours"]}}</td>
+        <td>{{work_item["Store"]}}</td>
+        <td>{{work_item["DepartmentName"]}}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </body>
+</html>

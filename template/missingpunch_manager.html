@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <title>缺卡提醒（店長通知）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% set level_map = {1: '書面提醒書', 2: '書面警告', 3: '最後警告'} %}
+    <style>
+      /* Embed local Arial for consistent PDF rendering */
+      @font-face {
+        font-family: 'ArialEmbed';
+        src: url('arial.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+      }
+
+      body { margin: 0; padding: 24px; background: #f8fafc; color: #0f172a; font-family: 'ArialEmbed', "Microsoft YaHei", Arial, sans-serif; }
+      .container { max-width: 760px; margin: 0 auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06); }
+      .content { padding: 28px; }
+      h1 { margin: 0 0 12px 0; font-size: 20px; letter-spacing: 0.5px; }
+      p { margin: 10px 0; line-height: 1.7; font-size: 14px; }
+      .meta { margin: 16px 0; padding: 12px 14px; background: #f1f5f9; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 13px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+      th, td { padding: 10px 12px; border: 1px solid #e2e8f0; text-align: left; }
+      th { background: #0f172a; color: #fff; letter-spacing: 0.5px; }
+      tbody tr:nth-child(odd) { background: #f8fafc; }
+      .footer { margin-top: 18px; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="content">
+        <h1>店長您好！</h1>
+        <p>以下是店裡上個月漏打卡超過 3 次的人員名單和他們收到的警告信級別。我們已經將警告信打印兩份，會在您下次來總部時交給您。請您拿到信與員工溝通時交給員工一份，另一份請員工簽字並將簽字文件掃描到 <strong>payroll@btrust.ca</strong> 用於公司存檔。謝謝！</p>
+
+        <div class="meta">
+          <div><strong>門店：</strong>{{ store or 'N/A' }}</div>
+          <div><strong>期間：</strong>{{ period_start }}{% if period_end %} - {{ period_end }}{% endif %}</div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>工號</th>
+              <th>姓名</th>
+              <th>警告信級別</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for emp in employee_notices %}
+            <tr>
+              <td>{{ emp.BtrustID or emp.btrust_id }}</td>
+              <td>{{ emp.RealName or emp.real_name or emp.name }}</td>
+              <td>{{ level_map.get(emp.WarningLevel or emp.warning_level, emp.WarningLevel or emp.warning_level) }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="3">本期暫無需處理的員工。</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <p class="footer">人力資源部</p>
+      </div>
+    </div>
+  </body>
+</html>

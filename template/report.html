@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>SIN expiration Dates</title>
+  </head>
+  <body>
+    <h1>Employees SIN number expiration alert</h1>
+    <p>Snapshot of {{item_count}} active employee SIN number expiration taken at {{snap_time.strftime('%H:%M on %h %d %Y')}}.</p>
+    {% if item_count > 5 %}
+    <p>See attachment for employee SIN number expiration table.</p>
+    {% else %}
+    <hr/>
+    <table class="table">
+      <thead>
+      <tr>
+        <th scope="col">Date</th>
+        <th scope="col">BtrustId</th>
+        <th scope="col">RealName</th>
+        <th scope="col">Store</th>
+        <th scope="col">DepartmentName</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for work_item in work_items %}
+      <tr>
+        <td>{{work_item["Date"]}}</td>
+        <td>{{work_item["BtrustId"]}}</td>
+        <td>{{work_item["RealName"]}}</td>
+        <td>{{work_item["Store"]}}</td>
+        <td>{{work_item["DepartmentName"]}}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </body>
+</html>

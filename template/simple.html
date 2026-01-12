@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Watermark Test</title>
+  <style>
+    @page {
+      background-image: url("{{ watermark_file }}");
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: 80%;
+    }
+
+    body {
+      font-family: Arial;
+      margin: 50px;
+      font-size: 20px;
+      color: #222;
+    }
+  </style>
+</head>
+<body>
+  <h1>Watermark Test</h1>
+  <p>This is a minimal template used to test PDF background watermark rendering.</p>
+</body>
+</html>
