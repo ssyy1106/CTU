@@ -143,7 +143,7 @@ def set_hq_shift(config):
 def get_work_days(first_day):
     # 根据first_day计算工作日
     current_day = first_day
-    while current_day < datetime.datetime.now().date():
+    while current_day < datetime.datetime.now().date() - datetime.timedelta(days=14):
         yield current_day
         current_day += datetime.timedelta(days=1)
 

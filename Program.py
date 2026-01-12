@@ -22,10 +22,6 @@ if __name__ == "__main__":
     config.read(config_file, encoding="utf-8")
     _init(config)
     set_logging()
-    #计算员工每日工时
-    calculate_employee_day_hours(config)
-    logging.info('calculate employee day hours finish')
-    exit()
 
     read_punch()
     # Read data from https://api.us.crosschexcloud.com
@@ -50,3 +46,6 @@ if __name__ == "__main__":
     send_hr_email_mp(config)
     logging.info('Send HR Missing Punch Email finish')
     logging.info('Program finish')
+    #计算员工每日工时
+    calculate_employee_day_hours(config)
+    logging.info('calculate employee day hours finish')
