@@ -107,13 +107,23 @@ def read_cx7(config):
             certification = config['certification']['file']
             print(certification)
         url = "https://api.us.crosschexcloud.com"
-        apiKey = '53bfe43e9417bfad8ba39006d01d9447'
-        apiSecret = '4042037824feecc8e279f181aa347db1'
-        token = get_token(url, apiKey, apiSecret, certification)
-        if token:
-            endTime = datetime.datetime.now(datetime.timezone.utc).isoformat()
-            beginTime = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=-2)).isoformat()
-            read_from_cx(url, token, beginTime, endTime, certification)
-            logging.info('Read CX7 data finish')
+        api_pairs = []
+        if 'CX7' in config:
+            keys = [value.strip() for value in config['CX7'].get('api_keys', '').split(',') if value.strip()]
+            secrets = [value.strip() for value in config['CX7'].get('api_secrets', '').split(',') if value.strip()]
+            if keys and secrets and len(keys) == len(secrets):
+                api_pairs = list(zip(keys, secrets))
+        if not api_pairs:
+            raise ValueError("Missing CX7 api_keys/api_secrets in config.ini or counts do not match")
+
+        for index, (apiKey, apiSecret) in enumerate(api_pairs, start=1):
+            token = get_token(url, apiKey, apiSecret, certification)
+            if token:
+                endTime = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                beginTime = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=-2)).isoformat()
+                read_from_cx(url, token, beginTime, endTime, certification)
+                logging.info(f"Read CX7 data finish (key {index})")
+            else:
+                logging.warning(f"CX7 token is empty (key {index})")
     except Exception as err:
         print(f"error: {err}")
