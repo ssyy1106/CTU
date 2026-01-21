@@ -27,13 +27,46 @@ def coroutine():
     x = yield
     print(f"end receive {x}")
     yield 2500
+    print('end coroutine')
 
-my_coro = coroutine()
-print(my_coro)
-print(next(my_coro))
-print('after next')
-res = my_coro.send(250)
-print(res)
-print('here')
-print(next(my_coro))
-print('exit')
+def average():
+    total = 0
+    count = 0
+    x = yield
+    try:
+        while True:
+            if x is not None:
+                total += x
+                count += 1
+                x = yield total / count
+            else:
+                x = yield None
+    except GeneratorExit:
+        print("Average coroutine closed.")
+        yield 888
+
+my_aver = average()
+print(next(my_aver))
+print(my_aver.send(100))
+print(my_aver.send(200))
+print(my_aver.send(None))
+print(my_aver.send(100))
+print(my_aver.send(800))
+print(my_aver.close())
+
+# my_coro = coroutine()
+# print(my_coro)
+# print(next(my_coro))
+# print('after next')
+# res = my_coro.send(250)
+# print(res)
+# print('here')
+# print(next(my_coro))
+# print('exit')
+
+# gen = gener()
+# print(next(gen))
+# print('after next')
+# print(next(gen))
+# print('here')
+# print(next(gen))

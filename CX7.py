@@ -47,7 +47,7 @@ def get_punches(url: str, page: int, token: str, beginTime: str, endTime: str, c
     #print(f"response: {response.text}")
     return response.text
 
-def store_punches(punches: list):
+def store_punches(punches: list, store: str):
     if not punches:
         return
     with DBContext() as conn:
@@ -66,14 +66,14 @@ def store_punches(punches: list):
                 hour = localTime.strftime("%H")
                 minute = localTime.strftime("%M")
                 punchDate = year+'-'+month+'-'+day
-                sql = f"Merge into SysPunch as t using (select '{BtrustID}' as BtrustId, '{year}' as year, '{month}' as month, '{day}' as day, '{hour}' as hour, '{minute}' as minute) as s on s.btrustid = t.btrustid and s.year = t.year and s.month = t.month and s.day = t.day and s.hour = t.hour and s.minute = t.minute when not matched then insert values('{BtrustID}', '{year}', '{month}', '{day}', '{hour}', '{minute}', '0', '10', '0', '1', '0', 'CX7', '{punchDate}', null, null);"
+                sql = f"Merge into SysPunch as t using (select '{BtrustID}' as BtrustId, '{year}' as year, '{month}' as month, '{day}' as day, '{hour}' as hour, '{minute}' as minute) as s on s.btrustid = t.btrustid and s.year = t.year and s.month = t.month and s.day = t.day and s.hour = t.hour and s.minute = t.minute when not matched then insert values('{BtrustID}', '{year}', '{month}', '{day}', '{hour}', '{minute}', '0', '{store}', '0', '1', '0', 'CX7', '{punchDate}', null, null);"
                 #print(f"year: {year} month: {month} day: {day} hour: {hour} minute: {minute}")
                 #sql = f"Merge into SysPunchFile as t using (select '{fileName}' as FileName, '{items}' as Items) as s on s.FileName = t.FileName when not matched then insert values( '{fileName}', '{fileModify}', {items}, '{firstYear}', '{firstMonth}', '{firstDay}', '{firstHour}', '{firstMinute}') when matched then update set ModifyTime = '{fileModify}', items={items}, firstYear='{firstYear}', firstMonth='{firstMonth}', firstDay='{firstDay}', firstHour='{firstHour}', firstMinute='{firstMinute}';"
                 cursor.execute(sql)
             print(f"commit punches")
 
 
-def read_from_cx(url: str, token: str, beginTime: str, endTime: str, certification: str):
+def read_from_cx(url: str, token: str, beginTime: str, endTime: str, certification: str, store: str):
     page = 1
     pageCount = 0
     responseText = get_punches(url, page, token, beginTime, endTime, certification)
@@ -84,7 +84,7 @@ def read_from_cx(url: str, token: str, beginTime: str, endTime: str, certificati
         page = int(payLoad['page'])
         pageCount = int(payLoad['pageCount'])
         punches = payLoad['list']
-        store_punches(punches)
+        store_punches(punches, store)
 
     while payLoad and pageCount > page:
         # 调用的api增加了限流，每分钟一次，所以等待一会
@@ -96,7 +96,7 @@ def read_from_cx(url: str, token: str, beginTime: str, endTime: str, certificati
         if payLoad:
             pageCount = int(payLoad['pageCount'])
             punches = payLoad['list']
-            store_punches(punches)
+            store_punches(punches, store)
 
 def read_cx7(config):
     # get token firstly
@@ -111,18 +111,19 @@ def read_cx7(config):
         if 'CX7' in config:
             keys = [value.strip() for value in config['CX7'].get('api_keys', '').split(',') if value.strip()]
             secrets = [value.strip() for value in config['CX7'].get('api_secrets', '').split(',') if value.strip()]
-            if keys and secrets and len(keys) == len(secrets):
-                api_pairs = list(zip(keys, secrets))
+            stores = [value.strip() for value in config['CX7'].get('store', '').split(',') if value.strip()]
+            if keys and secrets and stores and len(keys) == len(secrets) == len(stores):
+                api_pairs = list(zip(keys, secrets, stores))
         if not api_pairs:
-            raise ValueError("Missing CX7 api_keys/api_secrets in config.ini or counts do not match")
+            raise ValueError("Missing CX7 api_keys/api_secrets/store in config.ini or counts do not match")
 
-        for index, (apiKey, apiSecret) in enumerate(api_pairs, start=1):
+        for index, (apiKey, apiSecret, store) in enumerate(api_pairs, start=1):
             token = get_token(url, apiKey, apiSecret, certification)
             if token:
                 endTime = datetime.datetime.now(datetime.timezone.utc).isoformat()
                 beginTime = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=-2)).isoformat()
-                read_from_cx(url, token, beginTime, endTime, certification)
-                logging.info(f"Read CX7 data finish (key {index})")
+                read_from_cx(url, token, beginTime, endTime, certification, store)
+                logging.info(f"Read CX7 data finish (key {index}, store {store})")
             else:
                 logging.warning(f"CX7 token is empty (key {index})")
     except Exception as err:
