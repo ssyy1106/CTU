@@ -7,7 +7,7 @@
   <body>
     <h1>Employees SIN number expiration alert</h1>
     <p>Snapshot of {{item_count}} active employee SIN number expiration taken at {{snap_time.strftime('%H:%M on %h %d %Y')}}.</p>
-    {% if item_count > 5 %}
+    {% if item_count > 10 %}
     <p>See attachment for employee SIN number expiration table.</p>
     {% else %}
     <hr/>

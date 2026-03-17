@@ -21,6 +21,7 @@ def gener():
         print(f"begin {i}")
         yield i
         print(f"end {i}")
+    return 888
 
 def coroutine():
     print('begin')
@@ -45,14 +46,14 @@ def average():
         print("Average coroutine closed.")
         yield 888
 
-my_aver = average()
-print(next(my_aver))
-print(my_aver.send(100))
-print(my_aver.send(200))
-print(my_aver.send(None))
-print(my_aver.send(100))
-print(my_aver.send(800))
-print(my_aver.close())
+# my_aver = average()
+# print(next(my_aver))
+# print(my_aver.send(100))
+# print(my_aver.send(200))
+# print(my_aver.send(None))
+# print(my_aver.send(100))
+# print(my_aver.send(800))
+# print(my_aver.close())
 
 # my_coro = coroutine()
 # print(my_coro)
@@ -64,9 +65,13 @@ print(my_aver.close())
 # print(next(my_coro))
 # print('exit')
 
-# gen = gener()
-# print(next(gen))
-# print('after next')
-# print(next(gen))
-# print('here')
-# print(next(gen))
+try:
+    gen = gener()
+    for i in gen:
+        print(i)
+    print(next(gen))
+    print('after next')
+    print(next(gen))
+    print('here')
+except StopIteration as e:
+    print('Generator returned:', e.value)

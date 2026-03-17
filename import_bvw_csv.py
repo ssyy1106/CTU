@@ -7,7 +7,7 @@ import sys
 from helper import DBContext, _init
 
 
-DEFAULT_CSV = "BVW20260113.csv"
+DEFAULT_CSV = "BVW20260121.csv"
 
 
 def _load_config(config_path: str) -> None:

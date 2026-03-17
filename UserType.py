@@ -3,7 +3,7 @@ from enum import Enum
 import sys
 
 class UserType(namedtuple('UserType', 'name description'), Enum):
-    __order__ = 'S20 A A15 A24 A30 A36 A40 A44 APlus B BSub C CPlus CPlusQuestion D M O S SSub Agent A15Plus A24Plus A30Plus A36Plus A40Plus A44Plus A20Plus A30PlusQuestion'
+    __order__ = 'S20 A A15 A24 A30 A36 A40 A44 APlus B BSub C CPlus CPlusQuestion D M O S SSub Agent A15Plus A24Plus A30Plus A36Plus A40Plus A44Plus A20Plus A30PlusQuestion, B40Sub'
     S20 = 0, 20
     A = 1, sys.maxsize
     A15 = 2, 15
@@ -32,6 +32,7 @@ class UserType(namedtuple('UserType', 'name description'), Enum):
     A44Plus = 27, 44
     A20Plus = 31, 20
     A30PlusQuestion = 30, 30
+    B40Sub = 35, 40
 
     def __str__(self) -> str:
         return str(self.name)

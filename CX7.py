@@ -3,6 +3,7 @@ import datetime
 import requests
 import logging
 import time
+from zoneinfo import ZoneInfo
 from helper import DBContext
 
 def get_token(url: str, apiKey: str, apiSecret: str, certification: str) -> str:
@@ -47,33 +48,38 @@ def get_punches(url: str, page: int, token: str, beginTime: str, endTime: str, c
     #print(f"response: {response.text}")
     return response.text
 
-def store_punches(punches: list, store: str):
+def store_punches(punches: list, store: str, timezone_offset: int):
     if not punches:
         return
+    tz = ZoneInfo("America/Toronto")
     with DBContext() as conn:
         with conn.cursor() as cursor:
             for punch in punches:
                 checkTime = datetime.datetime.fromisoformat(punch['checktime'])
                 BtrustID = punch['employee']['workno']
                 # set time zone 
-                sgtTimeDelta = datetime.timedelta(hours=-5)
-                sgtTZObject = datetime.timezone(sgtTimeDelta, name="US/Eastern")
-                localTime = checkTime.astimezone(sgtTZObject)
+                # sgtTimeDelta = datetime.timedelta(hours=-5)
+                # sgtTZObject = datetime.timezone(sgtTimeDelta, name="US/Eastern")
+                # localTime = checkTime.astimezone(sgtTZObject)
+                localTime = checkTime.astimezone(tz)
+                # 增加 timezone_offset
+                adjusted_time = localTime + datetime.timedelta(hours=timezone_offset)
 
-                year = localTime.strftime("%Y")
-                month = localTime.strftime("%m")
-                day = localTime.strftime("%d")
-                hour = localTime.strftime("%H")
-                minute = localTime.strftime("%M")
+                year = adjusted_time.strftime("%Y")
+                month = adjusted_time.strftime("%m")
+                day = adjusted_time.strftime("%d")
+                hour = adjusted_time.strftime("%H")
+                minute = adjusted_time.strftime("%M")
                 punchDate = year+'-'+month+'-'+day
                 sql = f"Merge into SysPunch as t using (select '{BtrustID}' as BtrustId, '{year}' as year, '{month}' as month, '{day}' as day, '{hour}' as hour, '{minute}' as minute) as s on s.btrustid = t.btrustid and s.year = t.year and s.month = t.month and s.day = t.day and s.hour = t.hour and s.minute = t.minute when not matched then insert values('{BtrustID}', '{year}', '{month}', '{day}', '{hour}', '{minute}', '0', '{store}', '0', '1', '0', 'CX7', '{punchDate}', null, null);"
+                #print(f"checkTime: {checkTime} BtrustID: {BtrustID} store: {store} sql: {sql}")
                 #print(f"year: {year} month: {month} day: {day} hour: {hour} minute: {minute}")
                 #sql = f"Merge into SysPunchFile as t using (select '{fileName}' as FileName, '{items}' as Items) as s on s.FileName = t.FileName when not matched then insert values( '{fileName}', '{fileModify}', {items}, '{firstYear}', '{firstMonth}', '{firstDay}', '{firstHour}', '{firstMinute}') when matched then update set ModifyTime = '{fileModify}', items={items}, firstYear='{firstYear}', firstMonth='{firstMonth}', firstDay='{firstDay}', firstHour='{firstHour}', firstMinute='{firstMinute}';"
                 cursor.execute(sql)
             print(f"commit punches")
 
 
-def read_from_cx(url: str, token: str, beginTime: str, endTime: str, certification: str, store: str):
+def read_from_cx(url: str, token: str, beginTime: str, endTime: str, certification: str, store: str, timezone_offset: int):
     page = 1
     pageCount = 0
     responseText = get_punches(url, page, token, beginTime, endTime, certification)
@@ -84,7 +90,7 @@ def read_from_cx(url: str, token: str, beginTime: str, endTime: str, certificati
         page = int(payLoad['page'])
         pageCount = int(payLoad['pageCount'])
         punches = payLoad['list']
-        store_punches(punches, store)
+        store_punches(punches, store, timezone_offset)
 
     while payLoad and pageCount > page:
         # 调用的api增加了限流，每分钟一次，所以等待一会
@@ -96,7 +102,7 @@ def read_from_cx(url: str, token: str, beginTime: str, endTime: str, certificati
         if payLoad:
             pageCount = int(payLoad['pageCount'])
             punches = payLoad['list']
-            store_punches(punches, store)
+            store_punches(punches, store, timezone_offset)
 
 def read_cx7(config):
     # get token firstly
@@ -112,17 +118,18 @@ def read_cx7(config):
             keys = [value.strip() for value in config['CX7'].get('api_keys', '').split(',') if value.strip()]
             secrets = [value.strip() for value in config['CX7'].get('api_secrets', '').split(',') if value.strip()]
             stores = [value.strip() for value in config['CX7'].get('store', '').split(',') if value.strip()]
-            if keys and secrets and stores and len(keys) == len(secrets) == len(stores):
-                api_pairs = list(zip(keys, secrets, stores))
+            timezone_offsets = [value.strip() for value in config['CX7'].get('timezone_offset', '').split(',') if value.strip()]
+            if keys and secrets and stores and timezone_offsets and len(keys) == len(secrets) == len(stores) == len(timezone_offsets):
+                api_pairs = list(zip(keys, secrets, stores, timezone_offsets))
         if not api_pairs:
             raise ValueError("Missing CX7 api_keys/api_secrets/store in config.ini or counts do not match")
 
-        for index, (apiKey, apiSecret, store) in enumerate(api_pairs, start=1):
+        for index, (apiKey, apiSecret, store, timezone_offset) in enumerate(api_pairs, start=1):
             token = get_token(url, apiKey, apiSecret, certification)
             if token:
                 endTime = datetime.datetime.now(datetime.timezone.utc).isoformat()
-                beginTime = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=-2)).isoformat()
-                read_from_cx(url, token, beginTime, endTime, certification, store)
+                beginTime = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=-1)).isoformat()
+                read_from_cx(url, token, beginTime, endTime, certification, store, int(timezone_offset))
                 logging.info(f"Read CX7 data finish (key {index}, store {store})")
             else:
                 logging.warning(f"CX7 token is empty (key {index})")
