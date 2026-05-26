@@ -95,7 +95,7 @@ def get_hire_done_persons(period) -> set:
 def generate_message(period: str, BtrustId: str, realName: str)-> str:
     return f"Employee {realName} ({BtrustId}) sin number expiration is {period}."
 
-def add_log(period: str, BtrustId: str, type = 'SinExpirationNotification', mp_type = 1, mp_email_content = '')-> bool:
+def add_log(period: str, BtrustId: str, type = 'SinExpirationNotification', mp_type = 1, mp_email_content = '', history_id = None)-> bool:
     with DBContext() as conn:
         with conn.cursor() as cursor:
             if type == 'SinExpirationNotification':
@@ -123,11 +123,15 @@ def add_log(period: str, BtrustId: str, type = 'SinExpirationNotification', mp_t
                     return False
                 cursor.execute(f"insert into SysMPNotificationLog(BtrustId, date, type,emailcontent,senddate) values('{BtrustId}', '{period}', {mp_type}, '{mp_email_content}', '{datetime.datetime.now().strftime('%Y-%m-%d')}')")
             else:
-                cursor.execute(f"select * from SysBenefitNotificationLog where hours={period} and btrustid='{BtrustId}'")
+                # 兼容性处理：如果 history_id 为 None，则检查 sent 字段是否为 NULL
+                if history_id is None:
+                    cursor.execute("select * from SysBenefitNotificationLog where hours=? and btrustid=? and sent is null", (period, BtrustId))
+                else:
+                    cursor.execute("select * from SysBenefitNotificationLog where hours=? and btrustid=? and sent=?", (period, BtrustId, history_id))
                 row = cursor.fetchone()
                 if row:
                     return False
-                cursor.execute(f"insert into SysBenefitNotificationLog(BtrustId, hours) values('{BtrustId}', {period})")
+                cursor.execute("insert into SysBenefitNotificationLog(BtrustId, hours, sent) values(?, ?, ?)", (BtrustId, period, history_id))
             return True
 
 def send_email_to_hr(templateDIR: str, message: list, HREmails: list, fileName = "Btrust_alert", type = 1):
@@ -199,14 +203,20 @@ def send_hr_email_sin(config):
     except Exception as e:
         logging.info(f"send HR email error {e}")
 
-def get_all_persons(non_departments: list) -> set:
+def get_all_persons(non_departments: list, employment_type: int = None) -> set:
     with DBContext() as conn:
         with conn.cursor() as cursor:
+            params = []
+            sql = "select BtrustId from sysuser where baseisdelete=0 and (btruststatus is null or btruststatus=0)"
+            if employment_type is not None:
+                sql += " and EmploymentType = ?"
+                params.append(employment_type)
             if not non_departments:
-                cursor.execute(f"select BtrustId from sysuser where baseisdelete=0 and (btruststatus is null or btruststatus=0)")
+                cursor.execute(sql, params)
             else:
-                departments = '(' + ",".join(str(d) for d in non_departments) + ')'
-                cursor.execute(f"select BtrustId from sysuser where baseisdelete=0 and (btruststatus is null or btruststatus=0) and departmentid not in {departments}")
+                sql += " and departmentid not in (" + ",".join('?' for _ in non_departments) + ")"
+                params.extend(non_departments)
+                cursor.execute(sql, params)
             rows = cursor.fetchall()
             return set(item[0] for item in rows)
 
@@ -511,24 +521,54 @@ def get_mp(first_month, send_day: int):
 
 def get_benefit_notification(period, non_departments) -> list[dict]:
     message = []
-    employees = get_all_persons(non_departments) - get_done_persons(period)
+    # 仅发送 Full Time (EmploymentType=0) 类型的员工提醒
+    employees = get_all_persons(non_departments, employment_type=0)
     if not employees:
         return message
+
     with DBContext() as conn:
-        dic_hours = get_person_hours(conn, employees=list(employees), periodBegin='1999-01-01', periodEnd='2099-12-31')
         for btrustId in employees:
-            hours = dic_hours.get(btrustId, 0)
-            if hours >= int(period):
-                real_name, department_id, _ = get_user_info(btrustId)
-                if not real_name or not department_id:
+            real_name, department_id, hire_date = get_user_info(btrustId)
+            if not real_name or not department_id:
+                continue
+
+            # 1. 读取属性变更历史，寻找最近一次变为 Full Time 的记录
+            with conn.cursor() as cursor:
+                sql_hist = """
+                    SELECT TOP 1 h.id, h.BaseCreateTime 
+                    FROM SysUserAttributeHistory h 
+                    JOIN SysUser u ON h.UserId = u.id 
+                    WHERE u.BtrustId = ? AND h.field_name = 'EmploymentType' AND h.new_value = '0' 
+                    ORDER BY h.BaseCreateTime DESC
+                """
+                cursor.execute(sql_hist, (btrustId,))
+                history = cursor.fetchone()
+            
+            if not history:
+                # 如果没有变更历史，可能该员工自入职起就是FT或未同步历史，此处跳过或根据需要改为hiredate
+                continue
+            
+            history_id, ft_start_time = history
+            
+            # 2. 校验是否针对此特定的 FT 状态变更发送过该梯度的提醒
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT id FROM SysBenefitNotificationLog WHERE btrustid=? AND hours=? AND sent=?", (btrustId, period, history_id))
+                if cursor.fetchone():
                     continue
+
+            # 3. 计算自起算日期（最近一次FT变更或入职日期）以来的工时
+            dic_hours = get_person_hours(conn, employees=[btrustId], periodBegin=start_date_str, periodEnd='2099-12-31')
+            hours = dic_hours.get(btrustId, 0)
+            
+            if hours >= int(period):
                 department = get_store_name(department_id)
                 store = get_store_name(get_store(department_id))
                 
                 dic = {"BtrustId": btrustId, "WorkingHours": hours, "RealName": real_name, "Store": store, "DepartmentName": department}
                 message.append(dic)
-                add_log(int(period), btrustId, 'benefitlog')
-        return message
+                # 记录日志，并存储对应的 history_id 到 sent 字段
+                add_log(period, btrustId, type='benefitlog', history_id=history_id)
+    return message
 
 def get_hire_notification(period) -> list[dict]:
     try:
