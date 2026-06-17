@@ -544,20 +544,24 @@ def get_benefit_notification(period, non_departments) -> list[dict]:
                 cursor.execute(sql_hist, (btrustId,))
                 history = cursor.fetchone()
             
-            if not history:
-                # 如果没有变更历史，可能该员工自入职起就是FT或未同步历史，此处跳过或根据需要改为hiredate
-                continue
-            
-            history_id, ft_start_time = history
-            
+            if history:
+                history_id, _ = history
+            else:
+                # 如果没有变更历史，该员工自入职起就是FT，history_id 设置为 None
+                history_id = None
+        
             # 2. 校验是否针对此特定的 FT 状态变更发送过该梯度的提醒
             with conn.cursor() as cursor:
-                cursor.execute("SELECT id FROM SysBenefitNotificationLog WHERE btrustid=? AND hours=? AND sent=?", (btrustId, period, history_id))
+                #cursor.execute("SELECT id FROM SysBenefitNotificationLog WHERE btrustid=? AND hours=? AND sent=?", (btrustId, period, history_id))
+                if history_id is None:
+                    cursor.execute("SELECT id FROM SysBenefitNotificationLog WHERE btrustid=? AND hours=? AND sent is null", (btrustId, period))
+                else:
+                    cursor.execute("SELECT id FROM SysBenefitNotificationLog WHERE btrustid=? AND hours=? AND sent=?", (btrustId, period, history_id))
                 if cursor.fetchone():
                     continue
 
             # 3. 计算自起算日期（最近一次FT变更或入职日期）以来的工时
-            dic_hours = get_person_hours(conn, employees=[btrustId], periodBegin=start_date_str, periodEnd='2099-12-31')
+            dic_hours = get_person_hours(conn, employees=[btrustId], periodBegin='1999-01-01', periodEnd='2099-12-31')
             hours = dic_hours.get(btrustId, 0)
             
             if hours >= int(period):
